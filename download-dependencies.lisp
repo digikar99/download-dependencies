@@ -8,14 +8,35 @@
 (defvar *dependencies-home*)
 (defvar *visited-dependencies* nil)
 
-(defun ensure-system (system &key silent)
-  (let* ((system (etypecase system
-                   (string (asdf:find-system system t))
-                   (asdf:system system)))
-         (system-home (pathname
-                       (directory-namestring
-                        (slot-value system 'asdf:source-file))))
-         (deps-source-file (merge-pathnames #P".dependencies" system-home)))
+(defun ensure-system (system &key silent source-type source)
+  (declare (type (or null keyword) source-type))
+  (let (system-home)
+    (if (and source source-type)
+        (uiop:with-current-directory (*dependencies-home*)
+          (let* ((system-find-output
+                   (uiop:run-program (list "find" "." "-name"
+                                           (format nil "~A.asd" (string system)))
+                                     :output :string
+                                     :error-output *error-output*))
+                 (foundp (find #\newline system-find-output)))
+            (if foundp
+                (update system source-type source)
+                (download system source-type source))
+            (setq system-home (merge-pathnames (ensure-directory-name system)
+                                               *dependencies-home*))))
+        (let ((asdf-system (asdf:find-system system nil)))
+          (cond (asdf-system
+                 (unless silent
+                   (format t "Found ~A at ~A"
+                           system (asdf:component-pathname asdf-system)))
+                 (setq system-home
+                       (pathname-directory (asdf:component-pathname asdf-system))))
+                (t
+                 (error "No ASDF system found with name ~A.~%Did you mean to supply SOURCE and SOURCE-TYPE?" system)))))
+    (ensure-system-dependencies system-home :silent silent)))
+
+(defun ensure-system-dependencies (system-home &key silent)
+  (let* ((deps-source-file (merge-pathnames #P".dependencies" system-home)))
     (when (probe-file deps-source-file)
       (let ((*dependencies-home*
               (if (boundp '*dependencies-home*)
@@ -43,8 +64,9 @@
                   (unless (member directory *visited-dependencies* :test #'uiop:pathname-equal)
                     (pushnew directory *visited-dependencies* :test #'uiop:pathname-equal)
                     ;; (print (cons :visited *visited-dependencies*))
-                    (if (member directory (uiop:subdirectories *dependencies-home*)
-                                :test #'uiop:pathname-equal)
+                    (if (or (member directory (uiop:subdirectories *dependencies-home*)
+                                    :test #'uiop:pathname-equal)
+                            (probe-file directory))
                         (progn
                           (unless silent
                             (format t "~A is already available. Updating...~%" directory-name))
