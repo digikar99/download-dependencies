@@ -30,7 +30,8 @@
                    (format t "Found ~A at ~A"
                            system (asdf:component-pathname asdf-system)))
                  (setq system-home
-                       (pathname-directory (asdf:component-pathname asdf-system))))
+                       (uiop:pathname-directory-pathname
+                        (asdf:component-pathname asdf-system))))
                 (t
                  (error "No ASDF system found with name ~A.~%Did you mean to supply SOURCE and SOURCE-TYPE?" system)))))
     (ensure-system-dependencies system-home :silent silent)))
