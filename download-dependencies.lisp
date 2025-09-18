@@ -87,9 +87,13 @@
   (declare (ignore args))
   (uiop:with-current-directory (*dependencies-home*)
     (uiop:run-program (if depth
-                          (format nil "git clone --depth '~A' '~A' '~A'"
-                                  depth source directory-name)
-                          (format nil "git clone '~A' '~A'" source directory-name))
+                          (list "git" "clone"
+                                "--depth" (if (stringp depth)
+                                              depth
+                                              (write-to-string depth))
+                                source directory-name)
+                          (list "git" "clone"
+                                source directory-name))
                       :output *standard-output*
                       :error-output *error-output*)))
 
