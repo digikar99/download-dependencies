@@ -59,7 +59,9 @@
 (defun download-dependencies (dependencies-source-file &key silent)
   (with-open-file (f dependencies-source-file)
     (loop :while (listen f)
-          :do (destructuring-bind (directory-name source-type source &rest args) (read f)
+          :for spec := (read f nil nil)
+          :while spec
+          :do (destructuring-bind (directory-name source-type source &rest args) spec
                 (let ((directory (merge-pathnames (ensure-directory-name directory-name)
                                                   *dependencies-home*)))
                   (unless (member directory *visited-dependencies* :test #'uiop:pathname-equal)
