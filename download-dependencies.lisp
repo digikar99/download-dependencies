@@ -89,10 +89,9 @@
   (declare (ignore args))
   (uiop:with-current-directory (*dependencies-home*)
     (uiop:run-program (append '("git" "clone")
-                              (when depth (list "--depth" (format nil "'~A'" depth)))
-                              (when branch (list "-b" (format nil "'~A'" branch)))
-                              (list (format nil "'~A'" source))
-                              (list (format nil "'~A'" directory-name)))
+                              (when depth (list "--depth" depth))
+                              (when branch (list "-b" branch))
+                              (list source directory-name))
                       :output *standard-output*
                       :error-output *error-output*)))
 
