@@ -84,18 +84,15 @@
 
 (defgeneric download (directory-name source-type source &rest args))
 
-(defmethod download (directory-name (type (eql :git)) source &rest args &key depth)
+(defmethod download (directory-name (type (eql :git)) source &rest args &key depth branch)
   "FIXME: ARGS are currently unused"
   (declare (ignore args))
   (uiop:with-current-directory (*dependencies-home*)
-    (uiop:run-program (if depth
-                          (list "git" "clone"
-                                "--depth" (if (stringp depth)
-                                              depth
-                                              (write-to-string depth))
-                                source directory-name)
-                          (list "git" "clone"
-                                source directory-name))
+    (uiop:run-program (append '("git" "clone")
+                              (when depth (list "--depth" (format nil "'~A'" depth)))
+                              (when branch (list "-b" (format nil "'~A'" branch)))
+                              (list (format nil "'~A'" source))
+                              (list (format nil "'~A'" directory-name)))
                       :output *standard-output*
                       :error-output *error-output*)))
 
